@@ -1,0 +1,13 @@
+---VARIABLE---
+what room is : 94.50
+who is : 61.39
+where are the : 56.37
+could : 94.43
+what brand : 54.79
+
+---EQUICONST---
+what room is : 95.04
+who is : 61.73
+where are the : 56.66
+could : 94.69
+what brand : 54.99

@@ -1,0 +1,13 @@
+---VARIABLE---
+what is in the : 73.57
+what animal is : 83.06
+what is the woman : 70.50
+is the person : 92.07
+what is the man : 76.67
+
+---EQUICONST---
+what is in the : 69.99
+what animal is : 80.00
+what is the woman : 68.26
+is the person : 90.00
+what is the man : 75.19

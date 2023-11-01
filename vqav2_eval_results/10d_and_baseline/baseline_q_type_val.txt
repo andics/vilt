@@ -1,0 +1,73 @@
+index created!
+computing accuracy
+Finshed Percent: [####################] 99% Done computing accuracy
+
+
+Overall Accuracy is: 81.64
+
+Per Question Type Accuracy is the following:
+are there : 96.86
+what brand : 57.93
+what room is : 97.34
+what color is : 92.26
+is : 94.10
+are they : 94.97
+what number is : 18.62
+what does the : 44.28
+is this person : 95.59
+is the : 93.86
+what is the man : 81.99
+how many : 71.30
+does this : 95.06
+is there a : 96.80
+are : 91.81
+is he : 95.61
+what : 67.16
+does the : 92.90
+is the person : 95.58
+where is the : 58.02
+what animal is : 88.85
+how : 51.02
+is the man : 94.08
+what is the woman : 77.66
+none of the above : 79.40
+which : 64.60
+where are the : 60.59
+are the : 93.01
+how many people are : 71.91
+what is on the : 71.48
+has : 92.47
+was : 95.65
+what type of : 76.51
+is this an : 96.96
+do : 93.31
+can you : 94.08
+who is : 66.71
+are these : 95.03
+what are : 79.90
+what is the : 72.82
+is the woman : 93.73
+do you : 96.30
+what time : 42.30
+what are the : 73.88
+what color are the : 88.96
+why : 42.92
+what is this : 82.95
+what is the person : 82.14
+how many people are in : 74.01
+is this : 95.82
+why is the : 44.81
+what is the color of the : 92.62
+what is : 73.24
+could : 96.36
+are there any : 97.59
+what is in the : 78.92
+what sport is : 96.51
+what kind of : 76.19
+is it : 97.60
+is this a : 96.98
+what is the name : 29.58
+is there : 96.46
+what color is the : 91.19
+what color : 88.89
+is that a : 96.46

@@ -1,0 +1,7 @@
+Var-res:
+Email: andics124@gmail.com
+Password: IdIoT1243
+
+Equiconst:
+Email: andrey.gizdov@studbocconi.it
+Password: IdIoT1243
