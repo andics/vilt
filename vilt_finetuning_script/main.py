@@ -1,9 +1,9 @@
 import re
 import json
 import torch
-import numpy as np
-from PIL import Image
 import argparse
+import logging
+import os
 
 from os import listdir
 from os.path import isfile, join
@@ -14,32 +14,46 @@ from torch.utils.data import Dataset, DataLoader
 from typing import Optional
 
 from vilt_finetuning_script.objects.vqa_dataset_obj import VQADataset
-from vilt_finetuning_script.objects.vqa_dataset_obj import
-
+from vilt_finetuning_script.objects.logger_obj import loggerObj
+from vilt_finetuning_script.utils.util_functions import Utilities_helper
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--question_path', type=str, help='Path to the question json file')
-    parser.add_argument('--annotation_path', type=str, help='Path to the annotation json file')
-    parser.add_argument('--image_root', type=str, help='Root path to the image files')
-    parser.add_argument('--pretrained_model', type=str, default="dandelin/vilt-b32-mlm", help='Pretrained model to be used')
-    parser.add_argument('--batch_size', type=int, default=4, help='Batch size for training')
+    parser.add_argument('--question-path', type=str, help='Path to the question json file')
+    parser.add_argument('--annotation-path', type=str, help='Path to the annotation json file')
+    parser.add_argument('--image-root', type=str, help='Root path to the image files')
+    parser.add_argument('--pretrained-model', type=str, default="dandelin/vilt-b32-mlm",
+                        help='Pretrained model to be used')
+    parser.add_argument('--batch-size', type=int, default=4, help='Batch size for training')
     parser.add_argument('--lr', type=float, default=5e-5, help='Learning rate for the optimizer')
-    parser.add_argument('--num_epochs', type=int, default=50, help='Number of epochs for training')
+    parser.add_argument('--num-epochs', type=int, default=50, help='Number of epochs for training')
+
+    parser.add_argument('--model-save-dir', type=str, help='Path to where the model will be saved')
 
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    utils_helper = Utilities_helper()
+
+    logger_ref = loggerObj(logs_subdir=args.model_save_dir,
+                           log_file_name="log",
+                           utils_helper=utils_helper,
+                           log_level=logging.DEBUG)
+    logger_ref.setup_logger()
+    logging.info("Successfully setup logger...")
+    logging.info("Passed arguments -->>")
+    logging.info('\n  -  ' + '\n  -  '.join(f'{k}={v}' for k, v in vars(args).items()))
 
     vqa = VQA(args.question_path, args.annotation_path, args.image_root,
-              args.pretrained_model, args.batch_size, args.lr, args.num_epochs)
+              args.pretrained_model, args.batch_size, args.lr, args.num_epochs, device, args.model_save_dir)
     questions, annotations, filename_to_id, id_to_filename = vqa.load_data()
-    dataset, config, processor = vqa.prepare_data(questions, annotations)
+    dataset, config, processor = vqa.prepare_data(questions, annotations, filename_to_id, id_to_filename)
     vqa.train(dataset, config, processor)
 
 
 class VQA:
-    def __init__(self, question_path, annotation_path, image_root, pretrained_model, batch_size, lr, num_epochs):
+    def __init__(self, question_path, annotation_path, image_root,
+                 pretrained_model, batch_size, lr, num_epochs, device, model_save_dir):
         self.question_path = question_path
         self.annotation_path = annotation_path
         self.image_root = image_root
@@ -47,8 +61,11 @@ class VQA:
         self.batch_size = batch_size
         self.lr = lr
         self.num_epochs = num_epochs
+        self.device = device
+        self.model_save_dir = model_save_dir
 
     def load_data(self):
+        logging.info("Reading data...")
 
         #---Create necessary file-name maps---
         filename_re = re.compile(r".*(\d{12})\.((jpg)|(png))")
@@ -97,11 +114,17 @@ class VQA:
         return VQADataset(questions, annotations, processor, config, filename_to_id, id_to_filename),\
                config, processor
 
-    def train(self, dataset, config, processor):
+    def train(self, dataset, config, model_save_dir):
         model = ViltForQuestionAnswering.from_pretrained(self.pretrained_model,
                                                          id2label=config.id2label,
                                                          label2id=config.label2id)
-        model.to(device)
+
+        # Use all available GPUs, if we are on a CUDA machine, otherwise use CPU
+        if torch.cuda.device_count() > 1:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            model = torch.nn.DataParallel(model)
+
+        model = model.to(self.device)
 
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.lr)
 
@@ -111,14 +134,19 @@ class VQA:
         model.train()
         for epoch in range(self.num_epochs):  # loop over the dataset multiple times
             print(f"Epoch: {epoch}")
-            for batch in train_dataloader:
-                batch = {k: v.to(device) for k, v in batch.items()}
+            for i, batch in enumerate(train_dataloader):
+                batch = {k: v.to(self.device) for k, v in batch.items()}
                 optimizer.zero_grad()
                 outputs = model(**batch)
                 loss = outputs.loss
                 print("Loss:", loss.item())
                 loss.backward()
                 optimizer.step()
+
+                # Save the model every 2 iterations
+                if i % 2 == 0:
+                    torch.save(model.state_dict(),
+                               os.path.join(model_save_dir, f'model_{epoch}_{i}.pth'))
 
     @staticmethod
     def collate_fn(batch):
@@ -135,7 +163,6 @@ class VQA:
                 "attention_mask": batch_encoding["attention_mask"],
                 "pixel_values": pixel_values,
                 "labels": labels}
-
 
 if __name__ == "__main__":
     main()

@@ -6,3 +6,4 @@ core.90
 *.pyc
 *.png
 *.jpg
+*.ckpt
