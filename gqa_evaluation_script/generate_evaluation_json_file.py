@@ -10,6 +10,7 @@ from tqdm.auto import tqdm
 from PIL import Image
 from transformers import ViltProcessor, ViltForQuestionAnswering
 from torch.utils.data import DataLoader
+from collections import OrderedDict
 
 class VQAv2ModelEvaluator:
     '''
@@ -29,7 +30,7 @@ class VQAv2ModelEvaluator:
                             help='A path to the folder containing the images for the particular question file')
         parser.add_argument('-rsp', '--results-save-path', nargs='?',
                             type=str,
-                            default = "/home/projects/bagon/andreyg/Projects/Variable_Resolution_VQA/Programming/hugging_fc/eval_results/var_results.json",
+                            default = "/home/projects/bagon/andreyg/Projects/Variable_Resolution_VQA/Programming/vilt/eval_results/gqa_test_results.json",
                             required = False,
                             help='Path to the location in which to save the results .json file, in VQA format')
 
@@ -60,6 +61,35 @@ class VQAv2ModelEvaluator:
     def load_model(self):
         self.model_processor = ViltProcessor.from_pretrained("dandelin/vilt-b32-finetuned-vqa", device_map="cuda")
         self.model = ViltForQuestionAnswering.from_pretrained("dandelin/vilt-b32-finetuned-vqa", device_map="cuda")
+        # Once the model is created, load the weights from .ckpt file
+        weights = torch.load(
+            "/home/projects/bagon/andreyg/Projects/Variable_Resolution_VQA/Programming/vilt/pretrained_models/vilt_gqa.ckpt")
+        new_weights = self.fix_state_dict(weights["state_dict"])
+        self.model.load_state_dict(new_weights)
+
+
+    def fix_state_dict(self, state_dict):
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = k
+            if name.startswith('transformer'):  # remove 'transformer' from start
+                name = 'vilt' + name[len('transformer'):]
+            elif name.startswith('text_embeddings'):  # replace 'text_embeddings' to 'vilt.embeddings.text_embeddings'
+                name = name.replace('text_embeddings', 'vilt.embeddings.text_embeddings', 1)
+            elif name.startswith('token_type_embeddings'):
+                name = name.replace('token_type_embeddings', 'vilt.embeddings.token_type_embeddings', 1)
+            elif name.startswith('gqa_classifier'):
+                name = name.replace('gqa_classifier', 'classifier', 1)
+            elif name.startswith('cls_token'):
+                name = name.replace('cls_token', 'vilt.embeddings.cls_token', 1)
+            elif name.startswith('pos_embed'):
+                name = name.replace('pos_embed', 'vilt.embeddings.position_embeddings', 1)
+            elif name.startswith('pooler'):
+                name = name.replace('pooler', 'vilt.pooler', 1)
+            new_state_dict[name] = v
+
+        return new_state_dict
+
 
     def infer_images(self):
         current_image_id = None

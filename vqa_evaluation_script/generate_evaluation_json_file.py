@@ -66,6 +66,7 @@ class VQAv2ModelEvaluator:
         current_image_pil = None
         self.results = []
 
+        print("Inferring images...")
         for question in tqdm(self.questions):
             img_id = question['image_id']
             question_text = question['question']
